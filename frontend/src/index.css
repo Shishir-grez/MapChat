@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Leaflet Map Styles */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+.leaflet-control-zoom {
+  position: absolute !important;
+  right: 20px !important;
+  top: 20px !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #333333 !important;
+  transition: all 0.2s ease-out !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #0052CC !important;
+  color: white !important;
+}
+
+.leaflet-control-attribution {
+  display: none;
+}
+
+/* Message Animations */
+@keyframes messageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-enter {
+  animation: messageIn 0.3s ease-out forwards;
+}
+
+/* Typing Indicator Animation */
+@keyframes typingDot {
+  0%, 100% { opacity: 0.2; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+.typing-indicator span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  background-color: #0052CC;
+  border-radius: 50%;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation: typingDot 1s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation: typingDot 1s infinite 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation: typingDot 1s infinite 0.4s;
+}
+
+/* Sidebar Transition */
+.sidebar-transition {
+  transition-property: transform, opacity;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Hover Effects */
+.hover-scale {
+  transition: transform 0.2s ease-out;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Custom Map Pins */
+.map-pin {
+  animation: pinDrop 0.5s ease-out;
+}
+
+@keyframes pinDrop {
+  0% { transform: translateY(-20px) scale(0.8); opacity: 0; }
+  50% { transform: translateY(5px) scale(1.1); }
+  75% { transform: translateY(-3px) scale(0.95); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}

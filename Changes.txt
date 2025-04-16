@@ -1,0 +1,3 @@
+if input box is empty ( different color for send button ) 
+if input box has space first ( same ) 
+if something typed - the button lits up 
