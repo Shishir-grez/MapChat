@@ -1,108 +1,304 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  html {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    line-height: 1.5;
-    letter-spacing: -0.01em;
-  }
+/*
+ * Design tokens. Each UI variant overrides these on its root element (.ui-<name>).
+ * Colours are space-separated RGB channels so Tailwind opacity modifiers work:
+ *   bg-canvas, text-ink, border-line, bg-accent/10, font-display, …
+ */
+:root {
+  --mc-canvas: 255 255 255;
+  --mc-surface: 255 255 255;
+  --mc-ink: 23 23 23;
+  --mc-muted: 102 102 102;
+  --mc-faint: 153 153 153;
+  --mc-line: 229 229 229;
+  --mc-accent: 23 23 23;
+  --mc-accent-ink: 255 255 255;
+  --mc-font-display: ui-serif, Georgia, 'Times New Roman', serif;
+  --mc-font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mc-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
 }
 
-/* Leaflet Map Styles */
-.leaflet-container {
-  width: 100%;
+html,
+body,
+#root {
   height: 100%;
 }
 
-.leaflet-control-zoom {
-  position: absolute !important;
-  right: 20px !important;
-  top: 20px !important;
-  border-radius: 8px !important;
-  overflow: hidden !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+body {
+  margin: 0;
+  background: rgb(var(--mc-canvas));
+  color: rgb(var(--mc-ink));
+  font-family: var(--mc-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-.leaflet-control-zoom a {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  color: #333333 !important;
-  transition: all 0.2s ease-out !important;
+/* ------------------------------------------------------------------ Leaflet base */
+
+.mc-map {
+  position: relative;
+  height: 100%;
+  width: 100%;
 }
 
-.leaflet-control-zoom a:hover {
-  background-color: #0052CC !important;
-  color: white !important;
+.leaflet-container {
+  font: inherit;
+  background: #f3f3f1;
 }
 
-.leaflet-control-attribution {
-  display: none;
+.leaflet-container a {
+  color: inherit;
 }
 
-/* Message Animations */
-@keyframes messageIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Attribution must stay visible (OpenStreetMap licence); keep it quiet instead. */
+.leaflet-control-attribution.leaflet-control {
+  margin: 0;
+  padding: 2px 8px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: rgb(var(--mc-muted));
+  background: rgb(255 255 255 / 0.72);
+  backdrop-filter: blur(4px);
 }
 
-.message-enter {
-  animation: messageIn 0.3s ease-out forwards;
+.leaflet-control-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-/* Typing Indicator Animation */
-@keyframes typingDot {
-  0%, 100% { opacity: 0.2; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-2px); }
+/* Our divIcons draw everything themselves. */
+.leaflet-div-icon.mc-marker,
+.leaflet-div-icon.mc-user {
+  background: none;
+  border: 0;
 }
 
-.typing-indicator span {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 4px;
-  background-color: #0052CC;
-  border-radius: 50%;
+.mc-marker:focus-visible {
+  outline: none;
 }
 
-.typing-indicator span:nth-child(1) {
-  animation: typingDot 1s infinite;
+.mc-marker:focus-visible .mc-pin {
+  outline: 2px solid rgb(var(--mc-accent));
+  outline-offset: 3px;
 }
 
-.typing-indicator span:nth-child(2) {
-  animation: typingDot 1s infinite 0.2s;
+/* Neutral default pin (variants restyle .mc-pin under their root). */
+.mc-pin {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: rgb(var(--mc-ink));
+  color: rgb(var(--mc-canvas));
+  font: 600 12px/1 var(--mc-font-mono);
+  box-shadow: 0 0 0 2px rgb(255 255 255), 0 2px 6px rgb(0 0 0 / 0.25);
+  transition: transform 160ms ease, opacity 160ms ease, background-color 160ms ease;
 }
 
-.typing-indicator span:nth-child(3) {
-  animation: typingDot 1s infinite 0.4s;
+.mc-marker[data-state='hovered'] .mc-pin,
+.mc-marker[data-state='selected'] .mc-pin {
+  transform: scale(1.15);
 }
 
-/* Sidebar Transition */
-.sidebar-transition {
-  transition-property: transform, opacity;
-  transition-duration: 0.15s;
-  transition-timing-function: ease-in-out;
+.mc-marker[data-state='selected'] .mc-pin {
+  background: rgb(var(--mc-accent));
+  color: rgb(var(--mc-accent-ink));
 }
 
-/* Hover Effects */
-.hover-scale {
-  transition: transform 0.2s ease-out;
+.mc-marker[data-dimmed='true'] .mc-pin {
+  opacity: 0.55;
 }
 
-.hover-scale:hover {
-  transform: scale(1.05);
+/* The user's location. */
+.mc-user {
+  position: relative;
 }
 
-/* Custom Map Pins */
-.map-pin {
-  animation: pinDrop 0.5s ease-out;
+.mc-user-dot {
+  position: absolute;
+  inset: 3px;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 3px #fff, 0 1px 4px rgb(0 0 0 / 0.3);
 }
 
-@keyframes pinDrop {
-  0% { transform: translateY(-20px) scale(0.8); opacity: 0; }
-  50% { transform: translateY(5px) scale(1.1); }
-  75% { transform: translateY(-3px) scale(0.95); }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+.mc-user-halo {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: rgb(37 99 235 / 0.25);
+  animation: mc-halo 2.4s ease-out infinite;
+}
+
+.mc-user-accuracy {
+  stroke: #2563eb;
+  fill: #2563eb;
+}
+
+@keyframes mc-halo {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* Popups: variants restyle; this is a calm default. */
+.leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.14);
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px;
+  font: inherit;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------------------ variant switcher */
+
+.mc-switcher {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  z-index: 2000;
+  transform: translateY(-50%);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.mc-switcher-tab {
+  display: block;
+  padding: 10px 6px;
+  border: 1px solid #e4e4e7;
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  background: #fff;
+  color: #52525b;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  writing-mode: vertical-rl;
+  cursor: pointer;
+  box-shadow: -2px 2px 8px rgb(0 0 0 / 0.06);
+}
+
+.mc-switcher-tab:hover,
+.mc-switcher[data-open='true'] .mc-switcher-tab {
+  color: #18181b;
+}
+
+.mc-switcher-tab:focus-visible,
+.mc-switcher-item:focus-visible {
+  outline: 2px solid #18181b;
+  outline-offset: 2px;
+}
+
+.mc-switcher-menu {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 8px);
+  width: 300px;
+  transform: translateY(-50%);
+  padding: 6px;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.22);
+}
+
+.mc-switcher-heading {
+  margin: 6px 10px 4px;
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mc-switcher-item {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #18181b;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mc-switcher-item:hover {
+  background: #f4f4f5;
+}
+
+.mc-switcher-item[aria-checked='true'] {
+  background: #18181b;
+  color: #fff;
+}
+
+.mc-switcher-num {
+  padding-top: 1px;
+  font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  opacity: 0.55;
+}
+
+.mc-switcher-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mc-switcher-tagline {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.7;
+}
+
+/* ------------------------------------------------------------------ crash screen */
+
+.mc-crash {
+  display: grid;
+  height: 100%;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: #3f3f46;
+}
+
+.mc-crash button {
+  padding: 8px 14px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .mc-switcher {
+    display: none;
+  }
 }

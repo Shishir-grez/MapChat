@@ -1,58 +1,80 @@
-import React, { useState } from 'react';
-import { ChatSidebar } from './components/ChatSidebar';
-import { Navbar } from './components/Navbar';
-import { Map } from './components/Map';
+import { Component, lazy, Suspense, useEffect, useState, type ComponentType, type LazyExoticComponent, type ReactNode } from 'react';
+import { MapChatProvider } from './core';
+import { readJSON, removeKey, writeJSON } from './lib/storage';
+import { DEFAULT_VARIANT, VARIANTS, findVariant, type VariantId } from './variants/registry';
+import { VariantSwitcher } from './variants/VariantSwitcher';
 
-function App() {
-  const [isOpen, setIsOpen] = useState(true);
-  const [coordinates, setCoordinates] = useState<Array<{name: string, lat: number, lon: number}>>([]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([18.5204, 73.8567]); // Pune coordinates
-  const [mapZoom, setMapZoom] = useState(13);
-  
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
-  
-  // Function to update map with new coordinates
-  const updateMap = (newCoordinates: Array<{name: string, lat: number, lon: number}>) => {
-    console.log("updateMap: Updating map with new coordinates", newCoordinates);
-    setCoordinates(newCoordinates);
-    if (newCoordinates.length > 0) {
-      const firstCoord = newCoordinates[0];
-      setMapCenter([firstCoord.lat, firstCoord.lon]);
-      setMapZoom(12); // Zoom in
-    }
-  };
-  
+const lazyVariants = new Map<VariantId, LazyExoticComponent<ComponentType>>();
+function variantComponent(id: VariantId) {
+  let component = lazyVariants.get(id);
+  if (!component) {
+    component = lazy(findVariant(id)!.load);
+    lazyVariants.set(id, component);
+  }
+  return component;
+}
+
+function initialVariant(): VariantId {
+  const fromUrl = new URLSearchParams(window.location.search).get('ui');
   return (
-    <div className="flex flex-col h-screen text-[#333333]" style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
-      {/* Part 1: Navbar - fixed height at top */}
-      <div className="h-16 flex-shrink-0">
-        <Navbar 
-          isOpen={isOpen} 
-          onToggle={toggleSidebar} 
-        />
-      </div>
-      
-      {/* Part 2: Map and Sidebar - takes remaining height */}
-      <div className="flex-1 relative">
-        {/* Map positioned absolutely to fill the container */}
-        <div className="absolute inset-0" style={{ zIndex: 1 }}>
-          <Map 
-            coordinates={coordinates}
-            center={mapCenter}
-            zoom={mapZoom}
-          />
-        </div>
-        
-        {/* Sidebar positioned above map with higher z-index */}
-        <ChatSidebar 
-          isOpen={isOpen}
-          updateMap={updateMap}
-        />
-      </div>
-    </div>
+    findVariant(fromUrl)?.id ??
+    findVariant(readJSON<string | null>('variant', null))?.id ??
+    findVariant(import.meta.env.VITE_DEFAULT_VARIANT)?.id ??
+    DEFAULT_VARIANT
   );
 }
 
-export default App;
+const showSwitcher =
+  import.meta.env.VITE_VARIANT_SWITCHER !== 'off' &&
+  new URLSearchParams(window.location.search).get('switcher') !== '0' &&
+  VARIANTS.length > 1;
+
+class CrashBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div className="mc-crash" role="alert">
+        <p>Something went wrong while drawing the page.</p>
+        <button
+          type="button"
+          onClick={() => {
+            removeKey('conversation');
+            window.location.reload();
+          }}
+        >
+          Clear the conversation and reload
+        </button>
+      </div>
+    );
+  }
+}
+
+export default function App() {
+  const [variant, setVariant] = useState<VariantId>(initialVariant);
+  const Variant = variantComponent(variant);
+
+  useEffect(() => {
+    writeJSON('variant', variant);
+    document.documentElement.dataset.variant = variant;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('ui') !== variant) {
+      url.searchParams.set('ui', variant);
+      window.history.replaceState(null, '', url);
+    }
+  }, [variant]);
+
+  return (
+    <MapChatProvider>
+      <CrashBoundary key={variant}>
+        <Suspense fallback={<div className="h-full w-full bg-white" />}>
+          <Variant />
+        </Suspense>
+      </CrashBoundary>
+      {showSwitcher ? <VariantSwitcher current={variant} onChange={setVariant} /> : null}
+    </MapChatProvider>
+  );
+}
